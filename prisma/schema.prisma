@@ -1,0 +1,131 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum EventStatus {
+  DRAFT
+  PUBLISHED
+  CANCELLED
+  COMPLETED
+}
+
+enum RegistrationStatus {
+  REGISTERED
+  CONFIRMED
+  CANCELLED
+  ATTENDED
+}
+
+enum EmailType {
+  REGISTRATION_CONFIRMATION
+  EVENT_REMINDER
+  CERTIFICATE_AVAILABLE
+}
+
+enum EmailStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+model Admin {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Event {
+  id                 String         @id @default(cuid())
+  title              String
+  description        String         @db.Text
+  agenda             Json?
+  location           String?
+  startsAt           DateTime
+  endsAt             DateTime
+  capacity           Int?
+  webexLink          String?
+  webexPassword      String?
+  webexMeetingNumber String?
+  status             EventStatus    @default(DRAFT)
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  registrations      Registration[]
+  emailLogs          EmailLog[]
+
+  @@index([startsAt])
+  @@index([status])
+}
+
+model Registration {
+  id                      String              @id @default(cuid())
+  eventId                 String
+  event                   Event               @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  gradoAcademico          String
+  nombreCompleto          String
+  email                   String
+  telefono                String
+  institucion             String
+  accessToken             String              @unique
+  status                  RegistrationStatus  @default(REGISTERED)
+  confirmedAt             DateTime?
+  certificateUrl          String?
+  certificateSentAt       DateTime?
+  reminderSentAt          DateTime?
+  registrationEmailSentAt DateTime?
+  createdAt               DateTime            @default(now())
+  updatedAt               DateTime            @updatedAt
+  surveyResponse          SurveyResponse?
+  emailLogs               EmailLog[]
+
+  @@unique([eventId, email])
+  @@index([accessToken])
+  @@index([eventId])
+  @@index([status])
+}
+
+model SurveyResponse {
+  id               String       @id @default(cuid())
+  registrationId   String       @unique
+  registration     Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  ratingContent    Int
+  ratingInstructor Int
+  ratingLogistics  Int
+  ratingGeneral    Int
+  comments         String?      @db.Text
+  answers          Json?
+  submittedAt      DateTime     @default(now())
+}
+
+model EmailLog {
+  id              String        @id @default(cuid())
+  registrationId  String?
+  registration    Registration? @relation(fields: [registrationId], references: [id], onDelete: SetNull)
+  eventId         String?
+  event           Event?        @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  type            EmailType
+  recipientEmail  String
+  status          EmailStatus   @default(PENDING)
+  resendMessageId String?
+  errorMessage    String?       @db.Text
+  sentAt          DateTime?
+  createdAt       DateTime      @default(now())
+
+  @@index([registrationId])
+  @@index([type, status])
+  @@index([eventId])
+}
+
+model SiteSettings {
+  id                 Int       @id @default(1)
+  floorPlanImageUrl  String?
+  floorPlanUpdatedAt DateTime?
+  updatedAt          DateTime  @updatedAt
+}
