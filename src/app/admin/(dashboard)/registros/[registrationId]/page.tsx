@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CertificateForm } from "@/components/admin/CertificateForm";
+import { PromoteWaitlistButton } from "@/components/admin/PromoteWaitlistButton";
 import { setCertificateAndNotify } from "@/actions/emails";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -11,6 +12,7 @@ const STATUS_LABEL: Record<string, string> = {
   CONFIRMED: "Confirmado",
   CANCELLED: "Cancelado",
   ATTENDED: "Asistió",
+  WAITLIST: "Lista de espera",
 };
 
 export default async function RegistrationDetailPage({
@@ -43,6 +45,15 @@ export default async function RegistrationDetailPage({
           <Badge variant="outline">{STATUS_LABEL[registration.status]}</Badge>
         </div>
       </div>
+
+      {registration.status === "WAITLIST" ? (
+        <div className="flex flex-wrap items-center gap-3 rounded-md border border-amber-500/40 bg-amber-500/10 p-4 text-sm">
+          <span className="text-amber-900 dark:text-amber-200">
+            Está en lista de espera porque el cupo estaba lleno al registrarse.
+          </span>
+          <PromoteWaitlistButton registrationId={registration.id} />
+        </div>
+      ) : null}
 
       <Card>
         <CardHeader>

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { REGISTRATION_FILTERS } from "@/lib/registration-filters";
 
 export default async function AdminDashboardPage() {
   const [
@@ -9,30 +10,57 @@ export default async function AdminDashboardPage() {
     encuestasPendientes,
     constanciasPendientes,
     correosFallidos,
+    enListaEspera,
   ] = await Promise.all([
     prisma.event.count({
       where: { status: "PUBLISHED", startsAt: { gte: new Date() } },
     }),
-    prisma.registration.count({ where: { status: "CONFIRMED" } }),
     prisma.registration.count({
-      where: {
-        surveyResponse: null,
-        status: { not: "CANCELLED" },
-        event: { endsAt: { lt: new Date() } },
-      },
+      where: REGISTRATION_FILTERS.confirmados.where(),
     }),
     prisma.registration.count({
-      where: { certificateUrl: { not: null }, certificateSentAt: null },
+      where: REGISTRATION_FILTERS["encuesta-pendiente"].where(),
+    }),
+    prisma.registration.count({
+      where: REGISTRATION_FILTERS["constancia-pendiente"].where(),
     }),
     prisma.emailLog.count({ where: { status: "FAILED" } }),
+    prisma.registration.count({
+      where: REGISTRATION_FILTERS["lista-espera"].where(),
+    }),
   ]);
 
   const metrics = [
-    { label: "Próximos eventos publicados", value: proximosEventos, href: "/admin/eventos" },
-    { label: "Asistencias confirmadas", value: totalConfirmados, href: "/admin/eventos" },
-    { label: "Encuestas pendientes", value: encuestasPendientes, href: "/admin/eventos" },
-    { label: "Constancias por enviar", value: constanciasPendientes, href: "/admin/eventos" },
-    { label: "Correos fallidos", value: correosFallidos, href: "/admin/emails" },
+    {
+      label: "Próximos eventos publicados",
+      value: proximosEventos,
+      href: "/admin/eventos",
+    },
+    {
+      label: REGISTRATION_FILTERS.confirmados.label,
+      value: totalConfirmados,
+      href: "/admin/registros?filtro=confirmados",
+    },
+    {
+      label: REGISTRATION_FILTERS["encuesta-pendiente"].label,
+      value: encuestasPendientes,
+      href: "/admin/registros?filtro=encuesta-pendiente",
+    },
+    {
+      label: REGISTRATION_FILTERS["constancia-pendiente"].label,
+      value: constanciasPendientes,
+      href: "/admin/registros?filtro=constancia-pendiente",
+    },
+    {
+      label: REGISTRATION_FILTERS["lista-espera"].label,
+      value: enListaEspera,
+      href: "/admin/registros?filtro=lista-espera",
+    },
+    {
+      label: "Correos fallidos",
+      value: correosFallidos,
+      href: "/admin/emails?estado=FAILED",
+    },
   ];
 
   return (

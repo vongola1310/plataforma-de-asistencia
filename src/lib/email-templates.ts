@@ -1,7 +1,7 @@
 import type { ReactElement } from "react";
 import { render } from "@react-email/render";
 import { prisma } from "@/lib/prisma";
-import { getResendClient, EMAIL_FROM } from "@/lib/resend";
+import { getResendClient, isEmailConfigured, EMAIL_FROM } from "@/lib/resend";
 import type { Event, Registration, EmailType } from "@/generated/prisma/client";
 import { RegistrationConfirmation } from "@/emails/RegistrationConfirmation";
 import { EventReminder } from "@/emails/EventReminder";
@@ -26,6 +26,12 @@ async function sendTrackedEmail(params: {
   registrationId?: string;
   eventId?: string;
 }): Promise<{ success: boolean }> {
+  // Sin proveedor configurado no registramos nada: el correo es una comodidad,
+  // no un requisito, y llenar el log de fallos ocultaría los errores reales.
+  if (!isEmailConfigured()) {
+    return { success: false };
+  }
+
   const html = "<!doctype html>" + (await render(params.react));
 
   const log = await prisma.emailLog.create({
@@ -39,17 +45,8 @@ async function sendTrackedEmail(params: {
   });
 
   try {
-    const client = getResendClient();
-    if (!client) {
-      await prisma.emailLog.update({
-        where: { id: log.id },
-        data: {
-          status: "FAILED",
-          errorMessage: "RESEND_API_KEY no configurada",
-        },
-      });
-      return { success: false };
-    }
+    // isEmailConfigured() ya garantizó la key, así que aquí siempre hay cliente.
+    const client = getResendClient()!;
 
     const result = await client.emails.send({
       from: EMAIL_FROM,
@@ -93,17 +90,21 @@ export async function sendRegistrationConfirmationEmail(
   event: Event
 ) {
   const accessUrl = `${baseUrl()}/mi-registro/${registration.accessToken}`;
+  const isWaitlisted = registration.status === "WAITLIST";
 
   const result = await sendTrackedEmail({
     type: "REGISTRATION_CONFIRMATION",
     to: registration.email,
-    subject: `Registro confirmado: ${event.title}`,
+    subject: isWaitlisted
+      ? `Estás en lista de espera: ${event.title}`
+      : `Registro confirmado: ${event.title}`,
     react: RegistrationConfirmation({
       nombreCompleto: registration.nombreCompleto,
       eventTitle: event.title,
       eventDate: formatEventDate(event.startsAt),
       eventLocation: event.location,
       accessUrl,
+      isWaitlisted,
     }),
     registrationId: registration.id,
     eventId: event.id,

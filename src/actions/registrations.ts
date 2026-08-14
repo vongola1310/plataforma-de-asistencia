@@ -7,6 +7,8 @@ import { generateAccessToken } from "@/lib/tokens";
 import { registrationSchema } from "@/lib/validations/registration.schema";
 import { Prisma } from "@/generated/prisma/client";
 import { sendRegistrationConfirmationEmail } from "@/lib/email-templates";
+import { getCapacityInfo } from "@/lib/capacity";
+import { auth } from "@/lib/auth";
 
 export type RegistrationFormState = {
   error?: string;
@@ -41,17 +43,28 @@ export async function createRegistration(
   let accessToken: string;
 
   try {
-    const registration = await prisma.registration.create({
-      data: {
-        eventId,
-        gradoAcademico: data.gradoAcademico,
-        nombreCompleto: data.nombreCompleto,
-        email: data.email,
-        telefono: data.telefono,
-        institucion: data.institucion,
-        accessToken: generateAccessToken(),
-      },
+    const registration = await prisma.$transaction(async (tx) => {
+      // Bloquea la fila del evento para serializar los registros concurrentes:
+      // sin esto, dos personas enviando el formulario a la vez podrían tomar
+      // ambas el último lugar y sobrepasar el cupo.
+      await tx.$queryRaw`SELECT id FROM "Event" WHERE id = ${eventId} FOR UPDATE`;
+
+      const { isFull } = await getCapacityInfo(tx, eventId, event.capacity);
+
+      return tx.registration.create({
+        data: {
+          eventId,
+          gradoAcademico: data.gradoAcademico,
+          nombreCompleto: data.nombreCompleto,
+          email: data.email,
+          telefono: data.telefono,
+          institucion: data.institucion,
+          accessToken: generateAccessToken(),
+          status: isFull ? "WAITLIST" : "REGISTERED",
+        },
+      });
     });
+
     accessToken = registration.accessToken;
 
     try {
@@ -79,12 +92,69 @@ export async function createRegistration(
   redirect(`/mi-registro/${accessToken}`);
 }
 
+/**
+ * Promueve a un asistente de lista de espera a registrado (admin).
+ * Vuelve a validar el cupo bajo lock para no sobrepasarlo.
+ */
+export async function promoteFromWaitlist(
+  registrationId: string
+): Promise<{ ok: boolean; error?: string }> {
+  const session = await auth();
+  if (!session?.user) return { ok: false, error: "No autorizado" };
+
+  const registration = await prisma.registration.findUnique({
+    where: { id: registrationId },
+    include: { event: true },
+  });
+
+  if (!registration) return { ok: false, error: "Registro no encontrado" };
+  if (registration.status !== "WAITLIST") {
+    return { ok: false, error: "Este registro no está en lista de espera" };
+  }
+
+  const result = await prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM "Event" WHERE id = ${registration.eventId} FOR UPDATE`;
+
+    const { isFull } = await getCapacityInfo(
+      tx,
+      registration.eventId,
+      registration.event.capacity
+    );
+
+    if (isFull) {
+      return { ok: false, error: "No hay lugares disponibles" };
+    }
+
+    await tx.registration.update({
+      where: { id: registrationId },
+      data: { status: "REGISTERED" },
+    });
+
+    return { ok: true };
+  });
+
+  if (result.ok) {
+    revalidatePath(`/admin/eventos/${registration.eventId}/registros`);
+    revalidatePath(`/admin/registros/${registrationId}`);
+    revalidatePath(`/mi-registro/${registration.accessToken}`);
+  }
+
+  return result;
+}
+
 export async function confirmAttendance(token: string) {
   const registration = await prisma.registration.findUnique({
     where: { accessToken: token },
   });
 
-  if (!registration || registration.status === "CANCELLED") return;
+  // Solo quien ya tiene lugar puede confirmar. Los de lista de espera no
+  // pueden auto-promoverse llamando a esta acción directamente.
+  if (
+    !registration ||
+    (registration.status !== "REGISTERED" && registration.status !== "CONFIRMED")
+  ) {
+    return;
+  }
 
   await prisma.registration.update({
     where: { accessToken: token },

@@ -1,5 +1,7 @@
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -22,8 +24,26 @@ const STATUS_VARIANT: Record<string, "outline" | "destructive"> = {
   FAILED: "destructive",
 };
 
-export default async function AdminEmailsPage() {
+const STATUS_FILTERS = [
+  { key: undefined, label: "Todos" },
+  { key: "SENT", label: "Enviados" },
+  { key: "FAILED", label: "Fallidos" },
+] as const;
+
+function isEmailStatus(value: string | undefined): value is "SENT" | "FAILED" {
+  return value === "SENT" || value === "FAILED";
+}
+
+export default async function AdminEmailsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ estado?: string }>;
+}) {
+  const { estado } = await searchParams;
+  const activeStatus = isEmailStatus(estado) ? estado : undefined;
+
   const logs = await prisma.emailLog.findMany({
+    where: activeStatus ? { status: activeStatus } : {},
     orderBy: { createdAt: "desc" },
     take: 100,
     include: { registration: true },
@@ -31,7 +51,28 @@ export default async function AdminEmailsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">Correos enviados</h1>
+      <h1 className="text-2xl font-semibold">
+        {activeStatus === "FAILED"
+          ? "Correos fallidos"
+          : activeStatus === "SENT"
+            ? "Correos enviados"
+            : "Registro de correos"}
+      </h1>
+
+      <div className="flex flex-wrap gap-2">
+        {STATUS_FILTERS.map((filter) => (
+          <Link
+            key={filter.label}
+            href={filter.key ? `/admin/emails?estado=${filter.key}` : "/admin/emails"}
+            className={buttonVariants({
+              variant: activeStatus === filter.key ? "default" : "outline",
+              size: "sm",
+            })}
+          >
+            {filter.label}
+          </Link>
+        ))}
+      </div>
 
       <Table>
         <TableHeader>
@@ -71,7 +112,9 @@ export default async function AdminEmailsPage() {
           {logs.length === 0 ? (
             <TableRow>
               <TableCell colSpan={6} className="text-center text-muted-foreground">
-                Sin correos enviados todavía.
+                {activeStatus
+                  ? "No hay correos con este estado."
+                  : "Sin correos enviados todavía."}
               </TableCell>
             </TableRow>
           ) : null}

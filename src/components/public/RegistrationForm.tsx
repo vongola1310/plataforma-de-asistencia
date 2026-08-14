@@ -8,11 +8,13 @@ import type { RegistrationFormState } from "@/actions/registrations";
 
 export function RegistrationForm({
   action,
+  submitLabel = "Confirmar registro",
 }: {
   action: (
     prevState: RegistrationFormState,
     formData: FormData
   ) => Promise<RegistrationFormState>;
+  submitLabel?: string;
 }) {
   const [state, formAction, isPending] = useActionState(action, {});
   const errors = state.fieldErrors ?? {};
@@ -60,7 +62,7 @@ export function RegistrationForm({
       </div>
 
       <Button type="submit" className="w-full" disabled={isPending}>
-        {isPending ? "Enviando..." : "Confirmar registro"}
+        {isPending ? "Enviando..." : submitLabel}
       </Button>
     </form>
   );

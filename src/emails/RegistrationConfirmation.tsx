@@ -6,21 +6,39 @@ export function RegistrationConfirmation({
   eventDate,
   eventLocation,
   accessUrl,
+  isWaitlisted = false,
 }: {
   nombreCompleto: string;
   eventTitle: string;
   eventDate: string;
   eventLocation?: string | null;
   accessUrl: string;
+  isWaitlisted?: boolean;
 }) {
   return (
-    <EmailLayout previewText={`Registro confirmado: ${eventTitle}`}>
-      <p style={emailStyles.heading}>¡Registro confirmado!</p>
-      <p style={emailStyles.paragraph}>Hola {nombreCompleto},</p>
-      <p style={emailStyles.paragraph}>
-        Tu registro para <strong>{eventTitle}</strong> se realizó
-        correctamente.
+    <EmailLayout
+      previewText={
+        isWaitlisted
+          ? `Estás en lista de espera: ${eventTitle}`
+          : `Registro confirmado: ${eventTitle}`
+      }
+    >
+      <p style={emailStyles.heading}>
+        {isWaitlisted ? "Estás en lista de espera" : "¡Registro confirmado!"}
       </p>
+      <p style={emailStyles.paragraph}>Hola {nombreCompleto},</p>
+      {isWaitlisted ? (
+        <p style={emailStyles.paragraph}>
+          El cupo de <strong>{eventTitle}</strong> ya está lleno, así que te
+          anotamos en la <strong>lista de espera</strong>. Te avisaremos por
+          este medio si se libera un lugar.
+        </p>
+      ) : (
+        <p style={emailStyles.paragraph}>
+          Tu registro para <strong>{eventTitle}</strong> se realizó
+          correctamente.
+        </p>
+      )}
       <p style={emailStyles.label}>Fecha y hora</p>
       <p style={emailStyles.paragraph}>{eventDate}</p>
       {eventLocation ? (

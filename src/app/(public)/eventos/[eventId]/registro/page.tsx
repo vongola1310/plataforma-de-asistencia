@@ -2,7 +2,9 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RegistrationForm } from "@/components/public/RegistrationForm";
+import { CapacityNotice } from "@/components/public/CapacityNotice";
 import { createRegistration } from "@/actions/registrations";
+import { getCapacityInfo } from "@/lib/capacity";
 
 export default async function RegistroEventoPage({
   params,
@@ -14,18 +16,29 @@ export default async function RegistroEventoPage({
 
   if (!event || event.status !== "PUBLISHED") notFound();
 
+  const capacity = await getCapacityInfo(prisma, event.id, event.capacity);
   const boundCreateRegistration = createRegistration.bind(null, eventId);
 
   return (
     <div className="mx-auto max-w-lg px-4 py-12">
-      <h1 className="mb-1 text-2xl font-semibold">Registro</h1>
+      <h1 className="mb-1 text-2xl font-semibold">
+        {capacity.isFull ? "Lista de espera" : "Registro"}
+      </h1>
       <p className="mb-6 text-muted-foreground">{event.title}</p>
+
+      <CapacityNotice capacity={capacity} />
+
       <Card>
         <CardHeader>
           <CardTitle>Datos del asistente</CardTitle>
         </CardHeader>
         <CardContent>
-          <RegistrationForm action={boundCreateRegistration} />
+          <RegistrationForm
+            action={boundCreateRegistration}
+            submitLabel={
+              capacity.isFull ? "Anotarme en lista de espera" : "Confirmar registro"
+            }
+          />
         </CardContent>
       </Card>
     </div>

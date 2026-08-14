@@ -12,12 +12,16 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { BulkCertificateButton } from "@/components/admin/BulkCertificateButton";
+import { PromoteWaitlistButton } from "@/components/admin/PromoteWaitlistButton";
+import { AccessLinkBox } from "@/components/AccessLinkBox";
+import { getCapacityInfo } from "@/lib/capacity";
 
 const STATUS_LABEL: Record<string, string> = {
   REGISTERED: "Registrado",
   CONFIRMED: "Confirmado",
   CANCELLED: "Cancelado",
   ATTENDED: "Asistió",
+  WAITLIST: "Lista de espera",
 };
 
 export default async function RegistrosEventoPage({
@@ -38,6 +42,12 @@ export default async function RegistrosEventoPage({
 
   if (!event) notFound();
 
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
+  const capacity = await getCapacityInfo(prisma, event.id, event.capacity);
+  const waitlistCount = event.registrations.filter(
+    (r) => r.status === "WAITLIST"
+  ).length;
+
   return (
     <div className="space-y-6">
       <div>
@@ -50,6 +60,12 @@ export default async function RegistrosEventoPage({
         <h1 className="mt-1 text-2xl font-semibold">
           Registros — {event.title}
         </h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {capacity.capacity === null
+            ? `${capacity.occupied} registrados · sin límite de cupo`
+            : `${capacity.occupied}/${capacity.capacity} lugares ocupados`}
+          {waitlistCount > 0 ? ` · ${waitlistCount} en lista de espera` : ""}
+        </p>
       </div>
 
       <BulkCertificateButton eventId={event.id} />
@@ -87,13 +103,22 @@ export default async function RegistrosEventoPage({
                     ? "Pendiente de envío"
                     : "—"}
               </TableCell>
-              <TableCell className="text-right">
-                <Link
-                  href={`/admin/registros/${registration.id}`}
-                  className={buttonVariants({ variant: "ghost", size: "sm" })}
-                >
-                  Ver
-                </Link>
+              <TableCell>
+                <div className="flex items-center justify-end gap-1">
+                  {registration.status === "WAITLIST" ? (
+                    <PromoteWaitlistButton registrationId={registration.id} />
+                  ) : null}
+                  <AccessLinkBox
+                    compact
+                    url={`${baseUrl}/mi-registro/${registration.accessToken}`}
+                  />
+                  <Link
+                    href={`/admin/registros/${registration.id}`}
+                    className={buttonVariants({ variant: "ghost", size: "sm" })}
+                  >
+                    Ver
+                  </Link>
+                </div>
               </TableCell>
             </TableRow>
           ))}

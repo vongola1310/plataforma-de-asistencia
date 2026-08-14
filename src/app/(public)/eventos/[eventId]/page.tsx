@@ -4,6 +4,8 @@ import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CapacityNotice } from "@/components/public/CapacityNotice";
+import { getCapacityInfo } from "@/lib/capacity";
 
 export default async function EventoPublicoPage({
   params,
@@ -18,6 +20,8 @@ export default async function EventoPublicoPage({
   ]);
 
   if (!event || event.status === "DRAFT") notFound();
+
+  const capacity = await getCapacityInfo(prisma, event.id, event.capacity);
 
   const agenda = Array.isArray(event.agenda)
     ? (event.agenda as { hora: string; tema: string }[])
@@ -38,7 +42,9 @@ export default async function EventoPublicoPage({
         <p className="mb-6 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
           Este evento fue cancelado.
         </p>
-      ) : null}
+      ) : (
+        <CapacityNotice capacity={capacity} />
+      )}
 
       <Card className="mb-6">
         <CardHeader>
@@ -89,7 +95,9 @@ export default async function EventoPublicoPage({
           href={`/eventos/${event.id}/registro`}
           className={buttonVariants({ size: "lg" })}
         >
-          Registrarme a este evento
+          {capacity.isFull
+            ? "Anotarme en lista de espera"
+            : "Registrarme a este evento"}
         </Link>
       ) : null}
     </div>

@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { ConfirmAttendanceButton } from "@/components/public/ConfirmAttendanceButton";
+import { AccessLinkBox } from "@/components/AccessLinkBox";
 import { confirmAttendance } from "@/actions/registrations";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -13,6 +14,7 @@ const STATUS_LABEL: Record<string, string> = {
   CONFIRMED: "Asistencia confirmada",
   CANCELLED: "Cancelado",
   ATTENDED: "Asististe",
+  WAITLIST: "Lista de espera",
 };
 
 export default async function MiRegistroPage({
@@ -35,10 +37,17 @@ export default async function MiRegistroPage({
     : [];
   const siteSettings = await prisma.siteSettings.findUnique({ where: { id: 1 } });
 
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
+  const accessUrl = `${baseUrl}/mi-registro/${token}`;
+
+  const isWaitlisted = registration.status === "WAITLIST";
   const canConfirm =
     registration.status === "REGISTERED" && event.status === "PUBLISHED";
+  // Quien está en lista de espera todavía no tiene lugar, así que no recibe
+  // los datos de conexión.
   const showWebex =
     registration.status !== "CANCELLED" &&
+    !isWaitlisted &&
     event.status !== "CANCELLED" &&
     event.webexLink;
   const eventEnded = event.endsAt < new Date();
@@ -58,10 +67,30 @@ export default async function MiRegistroPage({
         {event.location ? ` · ${event.location}` : ""}
       </p>
 
-      <p className="mb-6 text-sm">
-        Hola {registration.nombreCompleto}, este es tu acceso personal a este
-        evento. Guarda este link.
-      </p>
+      <div className="mb-6 rounded-md border bg-muted/40 p-4">
+        <p className="text-sm font-medium">
+          Hola {registration.nombreCompleto}, guarda este link
+        </p>
+        <p className="mb-3 mt-1 text-sm text-muted-foreground">
+          Es tu acceso personal a este evento: con él consultas el temario, el
+          croquis y confirmas tu asistencia. Guárdalo en tus favoritos, es la
+          única forma de volver a esta página.
+        </p>
+        <AccessLinkBox url={accessUrl} />
+      </div>
+
+      {isWaitlisted ? (
+        <div className="mb-6 rounded-md border border-amber-500/40 bg-amber-500/10 p-4 text-sm">
+          <p className="font-medium text-amber-900 dark:text-amber-200">
+            Estás en lista de espera
+          </p>
+          <p className="mt-1 text-amber-900/80 dark:text-amber-200/80">
+            El cupo de este evento ya está lleno. Guardamos tu lugar en la lista
+            de espera y te contactaremos si se libera un espacio. Revisa este
+            link: los datos de conexión aparecerán aquí en cuanto tengas lugar.
+          </p>
+        </div>
+      ) : null}
 
       {canConfirm ? (
         <div className="mb-6">

@@ -7,6 +7,7 @@ import { Logo } from "@/components/Logo";
 const NAV_ITEMS = [
   { href: "/admin", label: "Dashboard" },
   { href: "/admin/eventos", label: "Eventos" },
+  { href: "/admin/registros", label: "Registros" },
   { href: "/admin/croquis", label: "Croquis" },
   { href: "/admin/emails", label: "Correos" },
 ];

@@ -19,6 +19,7 @@ enum RegistrationStatus {
   CONFIRMED
   CANCELLED
   ATTENDED
+  WAITLIST
 }
 
 enum EmailType {

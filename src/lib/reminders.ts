@@ -2,6 +2,7 @@ import { addDays, endOfDay, startOfDay } from "date-fns";
 import { fromZonedTime, toZonedTime } from "date-fns-tz";
 import { prisma } from "@/lib/prisma";
 import { sendEventReminderEmail } from "@/lib/email-templates";
+import { occupyingWhere } from "@/lib/capacity";
 
 // Zona horaria del showroom. Ajustar si el showroom está en otra región.
 const SHOWROOM_TIMEZONE = "America/Mexico_City";
@@ -29,7 +30,9 @@ export async function sendTomorrowReminders() {
     include: {
       registrations: {
         where: {
-          status: { not: "CANCELLED" },
+          // Solo quienes tienen lugar: los de lista de espera no reciben el
+          // recordatorio porque todavía no tienen asistencia asegurada.
+          ...occupyingWhere,
           reminderSentAt: null,
         },
       },
