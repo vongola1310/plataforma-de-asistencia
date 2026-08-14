@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { REGISTRATION_FILTERS } from "@/lib/registration-filters";
 
 export default async function AdminDashboardPage() {
@@ -65,18 +64,27 @@ export default async function AdminDashboardPage() {
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-semibold">Dashboard</h1>
+      <h1 className="mb-1 text-3xl font-bold">Dashboard</h1>
+      <p className="mb-8 text-muted-foreground">
+        Resumen de eventos, registros y correos.
+      </p>
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
         {metrics.map((metric) => (
-          <Link key={metric.label} href={metric.href}>
-            <Card className="transition-colors hover:bg-muted/40">
-              <CardHeader>
-                <CardTitle className="text-3xl">{metric.value}</CardTitle>
-              </CardHeader>
-              <CardContent className="text-sm text-muted-foreground">
-                {metric.label}
-              </CardContent>
-            </Card>
+          <Link
+            key={metric.label}
+            href={metric.href}
+            className="group rounded-2xl border bg-card p-6 transition-all hover:border-primary/40 hover:shadow-md hover:shadow-primary/5"
+          >
+            <span
+              className={`block text-4xl font-bold tabular-nums ${
+                metric.value > 0 ? "text-primary" : "text-muted-foreground/40"
+              }`}
+            >
+              {metric.value}
+            </span>
+            <span className="mt-2 block font-medium text-muted-foreground transition-colors group-hover:text-foreground">
+              {metric.label}
+            </span>
           </Link>
         ))}
       </div>

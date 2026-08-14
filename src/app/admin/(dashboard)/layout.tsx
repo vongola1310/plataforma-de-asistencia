@@ -21,12 +21,13 @@ export default async function AdminLayout({
 
   return (
     <div className="min-h-screen">
+      <div className="brand-rule h-1 w-full" />
       <header className="border-b bg-background">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
-          <nav className="flex flex-wrap items-center gap-5">
-            <Link href="/admin" className="flex items-center gap-2">
-              <Logo className="h-6 w-auto" />
-              <span className="hidden text-sm font-medium text-muted-foreground sm:inline">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-5 py-4">
+          <nav className="flex flex-wrap items-center gap-6">
+            <Link href="/admin" className="flex items-center gap-2.5">
+              <Logo className="h-7 w-auto" />
+              <span className="hidden rounded-md bg-primary/10 px-2 py-0.5 text-sm font-semibold text-primary sm:inline">
                 Admin
               </span>
             </Link>
@@ -34,7 +35,7 @@ export default async function AdminLayout({
               <Link
                 key={item.href}
                 href={item.href}
-                className="text-sm text-muted-foreground hover:text-foreground"
+                className="font-medium text-muted-foreground transition-colors hover:text-primary"
               >
                 {item.label}
               </Link>
@@ -52,7 +53,9 @@ export default async function AdminLayout({
           </div>
         </div>
       </header>
-      <main className="mx-auto max-w-6xl px-4 py-6 overflow-x-auto">{children}</main>
+      <main className="mx-auto max-w-6xl overflow-x-auto px-5 py-8">
+        {children}
+      </main>
     </div>
   );
 }

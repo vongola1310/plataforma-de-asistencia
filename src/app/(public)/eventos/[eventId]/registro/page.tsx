@@ -20,17 +20,17 @@ export default async function RegistroEventoPage({
   const boundCreateRegistration = createRegistration.bind(null, eventId);
 
   return (
-    <div className="mx-auto max-w-lg px-4 py-12">
-      <h1 className="mb-1 text-2xl font-semibold">
+    <div className="mx-auto max-w-lg px-5 py-14">
+      <h1 className="text-4xl font-bold">
         {capacity.isFull ? "Lista de espera" : "Registro"}
       </h1>
-      <p className="mb-6 text-muted-foreground">{event.title}</p>
+      <p className="mb-8 mt-2 text-lg text-muted-foreground">{event.title}</p>
 
       <CapacityNotice capacity={capacity} />
 
-      <Card>
+      <Card className="rounded-2xl">
         <CardHeader>
-          <CardTitle>Datos del asistente</CardTitle>
+          <CardTitle className="text-xl">Datos del asistente</CardTitle>
         </CardHeader>
         <CardContent>
           <RegistrationForm
