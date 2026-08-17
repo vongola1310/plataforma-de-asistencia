@@ -2,6 +2,13 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { EventDateBadge } from "@/components/public/EventDateBadge";
 
+/**
+ * Next no puede saber que esta consulta depende de la base, así que sin esto
+ * prerenderiza la página en el build y el listado queda congelado: los eventos
+ * que publique el admin no aparecerían hasta el siguiente deploy.
+ */
+export const dynamic = "force-dynamic";
+
 export default async function HomePage() {
   const events = await prisma.event.findMany({
     where: { status: "PUBLISHED", startsAt: { gte: new Date() } },
