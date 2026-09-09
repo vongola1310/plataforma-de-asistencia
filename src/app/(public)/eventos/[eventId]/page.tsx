@@ -91,7 +91,7 @@ export default async function EventoPublicoPage({
             <h2 className="mb-4 text-xl">Croquis del showroom</h2>
             <Image
               src={siteSettings.floorPlanImageUrl}
-              alt="Croquis de instalaciones del showroom"
+              alt="Croquis de las instalaciones del showroom"
               width={1000}
               height={700}
               className="h-auto w-full rounded-2xl border"

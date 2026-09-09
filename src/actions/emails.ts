@@ -52,6 +52,7 @@ export async function setCertificateAndNotify(
 
   revalidatePath(`/admin/registros/${registrationId}`);
   revalidatePath(`/admin/eventos/${registration.eventId}/registros`);
+  revalidatePath(`/mi-registro/${registration.accessToken}`);
   return {};
 }
 

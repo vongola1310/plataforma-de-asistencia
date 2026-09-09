@@ -89,6 +89,14 @@ export const emailStyles = {
     color: "#71717a",
     margin: "0 0 4px",
   },
+  link: {
+    fontSize: 14,
+    lineHeight: 1.6,
+    color: "#166534",
+    wordBreak: "break-all",
+    margin: "0 0 12px",
+    display: "inline-block",
+  },
   button: {
     display: "inline-block",
     backgroundColor: "#18181b",

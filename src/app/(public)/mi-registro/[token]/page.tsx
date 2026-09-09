@@ -2,11 +2,16 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { getBaseUrl } from "@/lib/base-url";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
-import { ConfirmAttendanceButton } from "@/components/public/ConfirmAttendanceButton";
+import { RegistrationActionButton } from "@/components/public/RegistrationActionButton";
 import { AccessLinkBox } from "@/components/AccessLinkBox";
-import { confirmAttendance } from "@/actions/registrations";
+import {
+  cancelRegistration,
+  confirmAttendance,
+  reactivateRegistration,
+} from "@/actions/registrations";
 
 const STATUS_LABEL: Record<string, string> = {
   REGISTERED: "Registrado",
@@ -36,20 +41,31 @@ export default async function MiRegistroPage({
     : [];
   const siteSettings = await prisma.siteSettings.findUnique({ where: { id: 1 } });
 
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
-  const accessUrl = `${baseUrl}/mi-registro/${token}`;
+  const accessUrl = `${await getBaseUrl()}/mi-registro/${token}`;
 
   const isWaitlisted = registration.status === "WAITLIST";
+  const isCancelled = registration.status === "CANCELLED";
+  const eventCancelled = event.status === "CANCELLED";
+  const eventEnded = event.endsAt < new Date();
   const canConfirm =
     registration.status === "REGISTERED" && event.status === "PUBLISHED";
+  // Dar de baja solo tiene sentido mientras la persona ocupa (o espera) un
+  // lugar y el evento no ha pasado.
+  const canCancel =
+    !isCancelled &&
+    registration.status !== "ATTENDED" &&
+    !eventCancelled &&
+    !eventEnded;
+  // El par (evento, correo) es único, así que quien canceló no puede volver a
+  // llenar el formulario: se reactiva desde aquí, con su propio link.
+  const canReactivate = isCancelled && event.status === "PUBLISHED" && !eventEnded;
   // Quien está en lista de espera todavía no tiene lugar, así que no recibe
   // los datos de conexión.
   const showWebex =
     registration.status !== "CANCELLED" &&
     !isWaitlisted &&
-    event.status !== "CANCELLED" &&
+    !eventCancelled &&
     event.webexLink;
-  const eventEnded = event.endsAt < new Date();
 
   return (
     <>
@@ -82,6 +98,37 @@ export default async function MiRegistroPage({
           <AccessLinkBox url={accessUrl} />
         </div>
 
+      {eventCancelled ? (
+        <div className="mb-8 rounded-2xl border border-destructive/30 bg-destructive/10 p-5">
+          <p className="text-lg font-semibold text-destructive">
+            Este evento fue cancelado
+          </p>
+          <p className="mt-1 text-destructive/80">
+            No es necesario que hagas nada. Si tienes dudas, contáctanos.
+          </p>
+        </div>
+      ) : null}
+
+      {isCancelled ? (
+        <div className="mb-8 flex flex-wrap items-center justify-between gap-4 rounded-2xl border-2 border-dashed p-5">
+          <div>
+            <p className="text-lg font-semibold">Diste de baja tu registro</p>
+            <p className="text-muted-foreground">
+              {canReactivate
+                ? "Si cambiaste de opinión, puedes recuperar tu lugar desde aquí."
+                : "El registro ya no está activo para este evento."}
+            </p>
+          </div>
+          {canReactivate ? (
+            <RegistrationActionButton
+              action={reactivateRegistration.bind(null, token)}
+              label="Reactivar mi registro"
+              pendingLabel="Reactivando..."
+            />
+          ) : null}
+        </div>
+      ) : null}
+
       {isWaitlisted ? (
         <div className="mb-8 rounded-2xl border-2 border-amber-500/40 bg-amber-500/10 p-5">
           <p className="text-lg font-semibold text-amber-900 dark:text-amber-200">
@@ -103,7 +150,30 @@ export default async function MiRegistroPage({
               Ayúdanos a preparar el lugar avisándonos que sí vienes.
             </p>
           </div>
-          <ConfirmAttendanceButton action={confirmAttendance.bind(null, token)} />
+          <RegistrationActionButton
+            action={confirmAttendance.bind(null, token)}
+            label="Confirmar asistencia"
+            pendingLabel="Confirmando..."
+          />
+        </div>
+      ) : null}
+
+      {canCancel ? (
+        <div className="mb-8 flex flex-wrap items-center justify-between gap-4 rounded-2xl border bg-card p-5">
+          <div>
+            <p className="text-lg font-semibold">¿Ya no puedes asistir?</p>
+            <p className="text-muted-foreground">
+              Da de baja tu lugar para que alguien más de la lista de espera
+              pueda tomarlo.
+            </p>
+          </div>
+          <RegistrationActionButton
+            action={cancelRegistration.bind(null, token)}
+            label="Dar de baja mi registro"
+            pendingLabel="Cancelando..."
+            variant="outline"
+            confirmText="¿Dar de baja tu registro? Tu lugar quedará disponible para alguien más."
+          />
         </div>
       ) : null}
 
@@ -134,7 +204,7 @@ export default async function MiRegistroPage({
           <h2 className="mb-4 text-xl">Croquis del showroom</h2>
           <Image
             src={siteSettings.floorPlanImageUrl}
-            alt="Croquis de instalaciones del showroom"
+            alt="Croquis de las instalaciones del showroom"
             width={1000}
             height={700}
             className="h-auto w-full rounded-2xl border"
@@ -193,7 +263,7 @@ export default async function MiRegistroPage({
         </section>
       ) : null}
 
-      {eventEnded && !registration.surveyResponse ? (
+      {eventEnded && !isCancelled && !isWaitlisted && !registration.surveyResponse ? (
         <section className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border-2 border-dashed p-5">
           <div>
             <p className="text-lg font-semibold">¿Cómo te fue?</p>
