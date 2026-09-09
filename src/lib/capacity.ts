@@ -1,4 +1,8 @@
-import type { Prisma, PrismaClient } from "@/generated/prisma/client";
+import type {
+  Prisma,
+  PrismaClient,
+  RegistrationStatus,
+} from "@/generated/prisma/client";
 
 /**
  * Estados que ocupan un lugar del cupo. Los cancelados liberan su lugar y los
@@ -9,6 +13,11 @@ export const OCCUPYING_STATUSES = [
   "CONFIRMED",
   "ATTENDED",
 ] as const;
+
+/** ¿Este registro tiene (o tuvo) un lugar asignado en el evento? */
+export function occupiesSpot(status: RegistrationStatus): boolean {
+  return (OCCUPYING_STATUSES as readonly string[]).includes(status);
+}
 
 export const occupyingWhere: Prisma.RegistrationWhereInput = {
   status: { in: [...OCCUPYING_STATUSES] },

@@ -12,9 +12,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { BulkCertificateButton } from "@/components/admin/BulkCertificateButton";
-import { PromoteWaitlistButton } from "@/components/admin/PromoteWaitlistButton";
+import { RegistrationStatusActions } from "@/components/admin/RegistrationStatusActions";
 import { AccessLinkBox } from "@/components/AccessLinkBox";
 import { getCapacityInfo } from "@/lib/capacity";
+import { getBaseUrl } from "@/lib/base-url";
 
 const STATUS_LABEL: Record<string, string> = {
   REGISTERED: "Registrado",
@@ -42,7 +43,7 @@ export default async function RegistrosEventoPage({
 
   if (!event) notFound();
 
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
+  const baseUrl = await getBaseUrl();
   const capacity = await getCapacityInfo(prisma, event.id, event.capacity);
   const waitlistCount = event.registrations.filter(
     (r) => r.status === "WAITLIST"
@@ -104,10 +105,11 @@ export default async function RegistrosEventoPage({
                     : "—"}
               </TableCell>
               <TableCell>
-                <div className="flex items-center justify-end gap-1">
-                  {registration.status === "WAITLIST" ? (
-                    <PromoteWaitlistButton registrationId={registration.id} />
-                  ) : null}
+                <div className="flex flex-wrap items-center justify-end gap-1">
+                  <RegistrationStatusActions
+                    registrationId={registration.id}
+                    status={registration.status}
+                  />
                   <AccessLinkBox
                     compact
                     url={`${baseUrl}/mi-registro/${registration.accessToken}`}

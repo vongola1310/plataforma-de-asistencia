@@ -1,14 +1,16 @@
 import type { ReactElement } from "react";
 import { render } from "@react-email/render";
 import { prisma } from "@/lib/prisma";
+import { getBaseUrl } from "@/lib/base-url";
 import { getResendClient, isEmailConfigured, EMAIL_FROM } from "@/lib/resend";
 import type { Event, Registration, EmailType } from "@/generated/prisma/client";
 import { RegistrationConfirmation } from "@/emails/RegistrationConfirmation";
 import { EventReminder } from "@/emails/EventReminder";
 import { CertificateAvailable } from "@/emails/CertificateAvailable";
+import { WaitlistPromoted } from "@/emails/WaitlistPromoted";
 
-function baseUrl() {
-  return process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
+async function accessUrlFor(registration: Registration) {
+  return `${await getBaseUrl()}/mi-registro/${registration.accessToken}`;
 }
 
 function formatEventDate(date: Date) {
@@ -89,7 +91,7 @@ export async function sendRegistrationConfirmationEmail(
   registration: Registration,
   event: Event
 ) {
-  const accessUrl = `${baseUrl()}/mi-registro/${registration.accessToken}`;
+  const accessUrl = await accessUrlFor(registration);
   const isWaitlisted = registration.status === "WAITLIST";
 
   const result = await sendTrackedEmail({
@@ -124,7 +126,7 @@ export async function sendEventReminderEmail(
   registration: Registration,
   event: Event
 ) {
-  const accessUrl = `${baseUrl()}/mi-registro/${registration.accessToken}`;
+  const accessUrl = await accessUrlFor(registration);
 
   return sendTrackedEmail({
     type: "EVENT_REMINDER",
@@ -148,7 +150,7 @@ export async function sendCertificateAvailableEmail(
   event: Event
 ) {
   if (!registration.certificateUrl) {
-    throw new Error("La registración no tiene certificateUrl");
+    throw new Error("El registro no tiene certificateUrl");
   }
 
   return sendTrackedEmail({
@@ -159,6 +161,28 @@ export async function sendCertificateAvailableEmail(
       nombreCompleto: registration.nombreCompleto,
       eventTitle: event.title,
       certificateUrl: registration.certificateUrl,
+    }),
+    registrationId: registration.id,
+    eventId: event.id,
+  });
+}
+
+export async function sendWaitlistPromotedEmail(
+  registration: Registration,
+  event: Event
+) {
+  const accessUrl = await accessUrlFor(registration);
+
+  return sendTrackedEmail({
+    type: "WAITLIST_PROMOTED",
+    to: registration.email,
+    subject: `Se liberó tu lugar en ${event.title}`,
+    react: WaitlistPromoted({
+      nombreCompleto: registration.nombreCompleto,
+      eventTitle: event.title,
+      eventDate: formatEventDate(event.startsAt),
+      eventLocation: event.location,
+      accessUrl,
     }),
     registrationId: registration.id,
     eventId: event.id,

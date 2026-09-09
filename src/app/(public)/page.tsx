@@ -11,7 +11,9 @@ export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   const events = await prisma.event.findMany({
-    where: { status: "PUBLISHED", startsAt: { gte: new Date() } },
+    // Se filtra por el fin y no por el inicio para que una sesión en curso siga
+    // visible mientras está ocurriendo.
+    where: { status: "PUBLISHED", endsAt: { gte: new Date() } },
     orderBy: { startsAt: "asc" },
   });
 

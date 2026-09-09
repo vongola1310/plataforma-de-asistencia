@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SurveyForm } from "@/components/public/SurveyForm";
 import { submitSurvey } from "@/actions/survey";
+import { occupiesSpot } from "@/lib/capacity";
 
 export default async function EncuestaPage({
   params,
@@ -19,6 +20,9 @@ export default async function EncuestaPage({
   if (!registration) notFound();
   if (registration.surveyResponse) redirect(`/mi-registro/${token}`);
   if (registration.event.endsAt > new Date()) redirect(`/mi-registro/${token}`);
+  if (!occupiesSpot(registration.status)) {
+    redirect(`/mi-registro/${token}`);
+  }
 
   const boundSubmitSurvey = submitSurvey.bind(null, token);
 

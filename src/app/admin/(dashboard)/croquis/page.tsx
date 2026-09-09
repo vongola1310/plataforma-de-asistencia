@@ -17,7 +17,7 @@ export default async function AdminCroquisPage() {
           {siteSettings?.floorPlanImageUrl ? (
             <Image
               src={siteSettings.floorPlanImageUrl}
-              alt="Croquis de instalaciones del showroom"
+              alt="Croquis de las instalaciones del showroom"
               width={800}
               height={600}
               className="h-auto w-full rounded-md border"

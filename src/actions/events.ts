@@ -76,6 +76,7 @@ export async function createEvent(
   });
 
   revalidatePath("/admin/eventos");
+  revalidatePath("/");
   redirect(`/admin/eventos/${event.id}`);
 }
 
@@ -112,5 +113,8 @@ export async function updateEvent(
 
   revalidatePath("/admin/eventos");
   revalidatePath(`/admin/eventos/${eventId}`);
+  revalidatePath("/");
+  revalidatePath(`/eventos/${eventId}`);
+  revalidatePath(`/eventos/${eventId}/registro`);
   return {};
 }

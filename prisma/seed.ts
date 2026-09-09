@@ -8,8 +8,18 @@ const prisma = new PrismaClient({ adapter });
 
 async function main() {
   const email = process.env.SEED_ADMIN_EMAIL ?? "admin@showroom.com";
-  const password = process.env.SEED_ADMIN_PASSWORD ?? "changeme123";
   const name = process.env.SEED_ADMIN_NAME ?? "Administrador";
+  const configuredPassword = process.env.SEED_ADMIN_PASSWORD;
+
+  // Una contraseña de ejemplo en producción es una puerta abierta al panel:
+  // mejor fallar el seed que crear el administrador con algo conocido.
+  if (!configuredPassword && process.env.NODE_ENV === "production") {
+    throw new Error(
+      "Define SEED_ADMIN_PASSWORD para crear el administrador en producción."
+    );
+  }
+
+  const password = configuredPassword ?? "changeme123";
 
   const passwordHash = await bcrypt.hash(password, 12);
 
@@ -20,9 +30,9 @@ async function main() {
   });
 
   console.log(`Admin listo: ${admin.email}`);
-  if (!process.env.SEED_ADMIN_PASSWORD) {
+  if (!configuredPassword) {
     console.log(
-      `Password temporal: "${password}" — cámbiala después de tu primer login.`
+      `Contraseña temporal: "${password}" — cámbiala después de tu primer inicio de sesión.`
     );
   }
 }
