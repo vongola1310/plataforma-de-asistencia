@@ -5,13 +5,25 @@ export const agendaItemSchema = z.object({
   tema: z.string().min(1, "Requerido"),
 });
 
+/**
+ * Formato de los inputs de fecha y hora ("2026-11-20T09:00"). Se valida el
+ * formato completo a propósito: antes bastaba con que la cadena no fuera vacía,
+ * así que una fecha a medias se guardaba como una hora cualquiera.
+ */
+const dateTimeLocal = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/, "Elige la fecha y la hora")
+  .refine((value) => !Number.isNaN(new Date(value).getTime()), {
+    message: "Fecha u hora inválida",
+  });
+
 export const eventSchema = z
   .object({
     title: z.string().trim().min(3, "El título es muy corto"),
     description: z.string().trim().min(10, "Agrega más detalle a la descripción"),
     location: z.string().trim().optional().or(z.literal("")),
-    startsAt: z.string().min(1, "Requerido"),
-    endsAt: z.string().min(1, "Requerido"),
+    startsAt: dateTimeLocal,
+    endsAt: dateTimeLocal,
     capacity: z
       .string()
       .optional()

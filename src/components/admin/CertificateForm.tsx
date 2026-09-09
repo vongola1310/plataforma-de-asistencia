@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,6 +17,9 @@ export function CertificateForm({
   defaultUrl?: string | null;
 }) {
   const [state, formAction, isPending] = useActionState(action, {});
+  // Controlado: React 19 resetea el formulario al terminar la acción y un error
+  // de validación borraba la URL capturada.
+  const [url, setUrl] = useState(defaultUrl ?? "");
 
   return (
     <form action={formAction} className="space-y-3">
@@ -27,7 +30,8 @@ export function CertificateForm({
           name="certificateUrl"
           type="url"
           placeholder="https://..."
-          defaultValue={defaultUrl ?? ""}
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
           required
         />
         {state.error ? (
